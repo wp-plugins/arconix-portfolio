@@ -22,7 +22,7 @@ With this plugin you can easily showcase your portfolio on your WordPress websit
 1. Download and install Arconix Portfolio using the built in WordPress plugin installer, or if you download the plugin manually, make sure the files are uploaded to `/wp-content/plugins/arconix-portfolio/`.
 1. Activate Arconix-Portfolio in the "Plugins" admin panel using the "Activate" link.
 1. Create your portfolio items from the WordPress admin section
-1. Use the shortcode `[portfolio]` on a post, page or widget to display your items
+1. Use the shortcode `[ portfolio ]` on a post, page or widget to display your items
 
 == Upgrade Notice ==
 
