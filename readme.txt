@@ -3,8 +3,8 @@ Contributors: jgardner03
 Tags: arconix, portfolio, quicksand
 Donate link: http://arcnx.co/acpdonation
 Requires at least: 3.4
-Tested up to: 3.5.1
-Stable tag: 1.2.2
+Tested up to: 3.6
+Stable tag: 1.3.0
 
 Arconix Portfolio allows you to easily display your portfolio on your website.
 
@@ -22,7 +22,7 @@ With this plugin you can easily showcase your portfolio on your WordPress websit
 1. Download and install Arconix Portfolio using the built in WordPress plugin installer, or if you download the plugin manually, make sure the files are uploaded to `/wp-content/plugins/arconix-portfolio/`.
 1. Activate Arconix-Portfolio in the "Plugins" admin panel using the "Activate" link.
 1. Create your portfolio items from the WordPress admin section
-1. Use the shortcode `[ portfolio ]` on a post, page or widget to display your items
+1. Use the shortcode `[portfolio]` on a post, page or widget to display your items
 
 == Upgrade Notice ==
 
@@ -31,7 +31,7 @@ With this plugin you can easily showcase your portfolio on your WordPress websit
 
 = How do I display my created portfolio items =
 
-Create a WordPress Page and use the `[ portfolio ]` shortcode. See the [Documentation](http://http;//arcnx.co/apwiki) for more details and available options
+Create a WordPress Page and use the `[portfolio]` shortcode. See the [Documentation](http://http;//arcnx.co/apwiki) for more details and available options
 
 = Where can I find more information on how to use the plugin?  =
 
@@ -57,6 +57,11 @@ That's fantastic! Feel free to submit a pull request over at [Github](http://arc
 2. Creating a Portfolio Item
 
 == Changelog ==
+= 1.3.0 =
+* Portfolio items can now be individually configured to link to an Image, Page, or External Link. See the documentation for more details
+* Adding a security check on the dashboard widget (filterable) so it only loads for admins
+* Added a filter to the return content for the portfolio data for additional developer flexibility
+
 = 1.2.2 =
 * Minified javascript support removed from arconix-portfolio.js until a better solution can be implemented 
 

@@ -4,7 +4,7 @@
  * Plugin URI: http://arconixpc.com/plugins/arconix-portfolio
  * Description: Portfolio Gallery provides an easy way to display your portfolio on your website
  *
- * Version: 1.2.2
+ * Version: 1.3.0
  *
  * Author: John Gardner
  * Author URI: http://arconixpc.com
@@ -32,9 +32,11 @@ class Arconix_Portfolio {
         add_action( 'admin_enqueue_scripts',            array( $this, 'admin_css' ) );
         add_action( 'right_now_content_table_end',      array( $this, 'right_now' ) );
         add_action( 'wp_dashboard_setup',               array( $this, 'register_dashboard_widget' ) );
+        add_action( 'init',                             'arconix_portfolio_init_meta_boxes', 99 );
 
         add_filter( 'manage_portfolio_posts_columns',   array( $this, 'columns_filter' ) );
         add_filter( 'post_updated_messages',            array( $this, 'updated_messages' ) );
+        add_filter( 'cmb_meta_boxes',                   array( $this, 'metaboxes' ) );
         add_filter( 'widget_text',                      'do_shortcode' );
 
         add_image_size( 'portfolio-thumb',              275, 200 );
@@ -49,7 +51,7 @@ class Arconix_Portfolio {
      * @since  1.2.0
      */
     function constants() {
-        define( 'ACP_VERSION',          '1.2.2' );
+        define( 'ACP_VERSION',          '1.3.0' );
         define( 'ACP_URL',              trailingslashit( plugin_dir_url( __FILE__ ) ) );
         define( 'ACP_IMAGES_URL',       trailingslashit( ACP_URL . 'images' ) );
         define( 'ACP_INCLUDES_URL',     trailingslashit( ACP_URL . 'includes' ) );
@@ -154,7 +156,7 @@ class Arconix_Portfolio {
                 )
             ),
             'query' => array(
-                'link'              => 'image',
+                'link'              => '',
                 'thumb'             => 'portfolio-thumb',
                 'full'              => 'portfolio-large',
                 'title'             => 'above',
@@ -171,6 +173,47 @@ class Arconix_Portfolio {
         );
 
         return apply_filters( 'arconix_portfolio_defaults', $defaults );
+    }
+
+    /**
+     * Create the post type metabox
+     *
+     * @param array $meta_boxes
+     * @return array $meta_boxes
+     * @since 1.3.0
+     */
+    function metaboxes( $meta_boxes ) {
+        $metabox = array(
+            'id'            => 'portfolio-setting',
+            'title'         => __( 'Portfolio Setting', 'acp' ),
+            'pages'         => array( 'portfolio' ),
+            'context'       => 'side',
+            'priority'      => 'default',
+            'show_names'    => false,
+            'fields'        => array(
+                array(
+                    'id'        => '_acp_link_type',
+                    'name'      => __( 'Select Link Type', 'acp' ),
+                    'type'      => 'select',
+                    'desc'      => __( 'Set the hyperlink value for the portfolio item', 'acp' ),
+                    'options'   => array(
+                        array( 'name' => 'Image',           'value' => 'image' ),
+                        array( 'name' => 'Page',            'value' => 'page' ),
+                        array( 'name' => 'External Link',   'value' => 'external' )
+                    )
+                ),
+                array(
+                    'id'        => '_acp_link_value',
+                    'name'      => __( 'Optional Link', 'acp' ),
+                    'desc'      => __( 'If selected, enter the destination hyperlink', 'acp' ),
+                    'type'      => 'text'
+                )
+            )
+        );
+
+        $meta_boxes[] = apply_filters( 'arconix_portfolio_metabox', $metabox );
+
+        return $meta_boxes;
     }
 
     /**
@@ -220,6 +263,7 @@ class Arconix_Portfolio {
             'title' => __( 'Title', 'acp' ),
             'portfolio_description' => __( 'Description', 'acp' ),
             'portfolio_features' => __( 'Features', 'acp' ),
+            'portfolio_link' => __( 'Link Type', 'acp' ),
             'date' => __( 'Date', 'acp' )
         );
 
@@ -246,6 +290,9 @@ class Arconix_Portfolio {
                 break;
             case "portfolio_features":
                 echo get_the_term_list( $post->ID, 'feature', '', ', ', '' );
+                break;
+            case "portfolio_link":
+                get_post_meta( $post->ID, '_acp_link_type', true );
                 break;
         }
     }
@@ -274,7 +321,7 @@ class Arconix_Portfolio {
      * @version 1.2.0
      */
     function acp_portfolio_shortcode( $atts, $content = null ) {
-        wp_enqueue_script( 'arconix-portfolio-js' );
+        if( wp_script_is( 'arconix-portfolio-js', 'registered' ) ) wp_enqueue_script( 'arconix-portfolio-js' );
         return $this->get_portfolio_data( $atts );
     }
 
@@ -300,7 +347,7 @@ class Arconix_Portfolio {
     * @param array $args
     * @param bool $echo Determines whether the data is returned or echo'd
     * @since  1.2.0
-    * @version 1.2.1
+    * @version 1.3.0
     *
     */
     function get_portfolio_data( $args, $echo = false ) {
@@ -378,19 +425,19 @@ class Arconix_Portfolio {
             // Get the tax terms only from the items in our query
             $get_terms = get_terms( 'feature', $a );        
             
-            // If there are multiple terms in use, then run through our display list
+            // If there are multiple terms in use, then create our filter list
             if( count( $get_terms ) > 1 )  {
                 $display_list = '<ul class="arconix-portfolio-features">';
                 
                 if( $heading)
                     $display_list .= "<li class='arconix-portfolio-category-title'>{$heading}</li>";
 
-                $display_list .= '<li class="active"><a href="javascript:void(0)" class="all">' . __( 'All', 'acp' ) . '</a></li>';
+                $display_list .= '<li class="arconix-portfolio-feature active"><a href="javascript:void(0)" class="all">' . __( 'All', 'acp' ) . '</a></li>';
 
                 // Break each of the items into individual elements and modify the output
                 $term_list = '';        
                 foreach( $get_terms as $term ) {
-                    $term_list .= '<li><a href="javascript:void(0)" class="' . $term->slug . '">' . $term->name . '</a></li>';
+                    $term_list .= '<li class"arconix-portfolio-feature"><a href="javascript:void(0)" class="' . $term->slug . '">' . $term->name . '</a></li>';
                 }
 
                 // Return our modified list
@@ -403,12 +450,13 @@ class Arconix_Portfolio {
             $return .= '<ul class="arconix-portfolio-grid">';
 
             while( $portfolio_query->have_posts() ) : $portfolio_query->the_post();
+                $p_id = get_the_ID();
 
                 // Get the terms list
-                $get_the_terms = get_the_terms( get_the_ID(), 'feature' );
+                $get_the_terms = get_the_terms( $p_id, 'feature' );                
 
                 // Add each term for a given portfolio item as a data type so it can be filtered by Quicksand
-                $return .= '<li data-id="id-' . get_the_ID() . '" data-type="';
+                $return .= '<li data-id="id-' . $p_id . '" data-type="';
                 
                 if( $get_the_terms ) {
                     foreach ( $get_the_terms as $term ) {
@@ -421,23 +469,67 @@ class Arconix_Portfolio {
                 // Above image Title output
                 if( $title == "above" ) $return .= '<div class="arconix-portfolio-title">' . get_the_title() . '</div>';
 
-                // Handle the image link
-                switch( $link ) {
-                    case "page" :
-                        $return .= '<a href="' . get_permalink() . '" rel="bookmark">';                        
-                        $return .= get_the_post_thumbnail( get_the_ID(), $thumb );
-                        $return .= '</a>';
-                        break;
+                /**
+                 * As of v1.3.0, the destination of the link can be defined at the item level. In order to remain backwards compatible
+                 * we have to check if a shortcode parameter was set. If a shortcode param was set, that takes precedence
+                 */
+                
+                if( $link ) {
+                    switch( $link ) {
+                        case "page" :
+                            $return .= '<a class="page" href="' . get_permalink() . '" rel="bookmark">';                        
+                            $return .= get_the_post_thumbnail( $p_id, $thumb );
+                            $return .= '</a>';
+                            break;
 
-                    case "image" :
-                        $_portfolio_img_url = wp_get_attachment_image_src( get_post_thumbnail_id(), $full );
-                        $return .= '<a href="' . $_portfolio_img_url[0] . '" title="' . the_title_attribute( 'echo=0' ) . '" >';
-                        $return .= get_the_post_thumbnail( get_the_ID(), $thumb );
-                        $return .= '</a>';
-                        break;
+                        case "image" :
+                        default :
+                            $_portfolio_img_url = wp_get_attachment_image_src( get_post_thumbnail_id(), $full );
+                            $return .= '<a class="image" href="' . $_portfolio_img_url[0] . '" title="' . the_title_attribute( 'echo=0' ) . '" >';
+                            $return .= get_the_post_thumbnail( $p_id, $thumb );
+                            $return .= '</a>';
+                            break;
+                    }
+                }
+                else {
+                    // Grab the post meta
+                    $link_type = get_post_meta( $p_id, '_acp_link_type', true );
+                    $link_value = get_post_meta( $p_id, '_acp_link_value', true );
 
-                    default : // If it's anything else, return nothing.
-                        break;
+                    switch ( $link_type ) {
+                        case 'image' :
+                        default :
+                            $_portfolio_img_url = wp_get_attachment_image_src( get_post_thumbnail_id(), $full );
+                            $return .= '<a class="portfolio-image" href="' . $_portfolio_img_url[0] . '" title="' . the_title_attribute( 'echo=0' ) . '" >';
+                            $return .= get_the_post_thumbnail( $p_id, $thumb );
+                            $return .= '</a>';
+                            $return .= '<!-- link type = ' . $link_type . ' -->';
+                            break;
+
+                        case 'page' :
+                            $return .= '<a class="portfolio-page" href="' . get_permalink() . '" rel="bookmark">';                        
+                            $return .= get_the_post_thumbnail( $p_id, $thumb );
+                            $return .= '</a>';
+                            $return .= '<!-- link type = ' . $link_type . ' -->';
+                            break;
+
+                        case 'external' :
+                            if( empty( $link_value ) ) { // If the user forgot to enter a link value in the text box, just show the image
+                                $_portfolio_img_url = wp_get_attachment_image_src( get_post_thumbnail_id(), $full );
+                                $return .= '<a class="portfolio-image" href="' . $_portfolio_img_url[0] . '" title="' . the_title_attribute( 'echo=0' ) . '" >';
+                                $return .= get_the_post_thumbnail( $p_id, $thumb );
+                                $return .= '</a>';
+                                $return .= '<!-- link missing -->';
+                            }
+                            else {
+                                $extra_class = '';
+                                $extra_class = apply_filters( 'arconix_portfolio_external_link_class', $extra_class );
+                                $return .= '<a class="portfolio-external '. $extra_class . '" href="' . esc_url( $link_value ) . '">';
+                                $return .= get_the_post_thumbnail( $p_id, $thumb );
+                                $return .= '</a>';
+                                $return .= '<!-- link type = ' . $link_type . ' -->';
+                            }
+                    }
                 }
 
                 // Below image Title output
@@ -463,6 +555,8 @@ class Arconix_Portfolio {
         }
         $return .= '</ul>';
 
+        $return = apply_filters( 'arconix_portfolio_return', $return );
+
     // Either echo or return the results
     if( $echo )
         echo $return;
@@ -474,6 +568,8 @@ class Arconix_Portfolio {
      * Load the plugin scripts. If the css file is present in the theme directory, it will be loaded instead,
      * allowing for an easy way to override the default template. If you'd like to remove the CSS or JS entirely,
      * such as when building the styles or scripts into a single file, simply reference the filter and return false
+     *
+     * @example add_filter( 'pre_register_arconix_portfolio_js', '__return_false' );
      *
      * @since 0.9
      * @version 1.2.2
@@ -519,10 +615,15 @@ class Arconix_Portfolio {
     /**
      * Adds a widget to the dashboard.
      *
+     * Can be removed entirely via a filter, but is visible by default for admins only
+     *
      * @since 0.9.1
+     * @version 1.3.0
      */
     function register_dashboard_widget() {
-        wp_add_dashboard_widget( 'ac-portfolio', 'Arconix Portfolio', array( $this, 'dashboard_widget_output' ) );
+        if( apply_filters( 'pre_register_arconix_portfolio_dashboard_widget', true ) and 
+            apply_filters( 'arconix_portfolio_dashboard_widget_security', current_user_can( 'manage_options' ) ) )
+                wp_add_dashboard_widget( 'ac-portfolio', 'Arconix Portfolio', array( $this, 'dashboard_widget_output' ) );
     }
 
     /**
@@ -545,6 +646,11 @@ class Arconix_Portfolio {
     function right_now() {
         include_once( ACP_VIEWS_DIR . 'right-now.php' );
     }
+}
+
+function arconix_portfolio_init_meta_boxes() {
+    if( ! class_exists( 'cmb_Meta_Box' ) )
+        require_once( plugin_dir_path( __FILE__ ) . '/includes/metabox/init.php' );
 }
 
 new Arconix_Portfolio;
