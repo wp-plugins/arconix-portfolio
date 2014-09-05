@@ -2,9 +2,8 @@
 Contributors: jgardner03
 Donate link: http://arcnx.co/acpdonation
 Tags: arconix, portfolio, quicksand
-Donate link: http://arcnx.co/acpdonation
-Requires at least: 3.4
-Tested up to: 3.6
+Requires at least: 3.8
+Tested up to: 4.0
 Stable tag: 1.3.2
 
 Arconix Portfolio allows you to easily display your portfolio on your website.
@@ -32,7 +31,7 @@ With this plugin you can easily showcase your portfolio on your WordPress websit
 
 = How do I display my created portfolio items =
 
-Create a WordPress Page and use the `[portfolio]` shortcode. See the [Documentation](http://http;//arcnx.co/apwiki) for more details and available options
+Create a WordPress Page and use the `[portfolio]` shortcode. See the [Documentation](http://arcnx.co/apwiki) for more details and available options
 
 = Where can I find more information on how to use the plugin?  =
 
@@ -70,7 +69,7 @@ Resolves a conflict with themes from WooThemes that prevented users from inserti
 * Added a filter to the return content for the portfolio data for additional developer flexibility
 
 = 1.2.2 =
-* Minified javascript support removed from arconix-portfolio.js until a better solution can be implemented 
+* Minified javascript support removed from arconix-portfolio.js until a better solution can be implemented
 
 = 1.2.1 =
 * Fixed a bug in the taxonomy query that would prevent the portfolio items from displaying
